@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R_N</title>
+    <link rel="icon" href="/images/system1.jpg" type="image/png">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Marked.js -->
+    <script src="js/vendor/marked.min.js"></script>
+
+    <!-- Highlight.js -->
+    <link rel="stylesheet" href="css/highlight-github-dark.min.css">
+    <script src="js/vendor/highlight.min.js"></script>
+</head>
+
+<body>
+
+    <!-- ===== HERO SECTION (Full Page) ===== -->
+    <section class="hero" id="hero">
+        <!-- Decorative elements -->
+        <div class="hero-deco-line left"></div>
+        <div class="hero-deco-line right"></div>
+        <div class="hero-corner tl"></div>
+        <div class="hero-corner tr"></div>
+        <div class="hero-corner bl"></div>
+        <div class="hero-corner br"></div>
+
+        <!-- Floating orbs -->
+        <div class="hero-orb hero-orb-1"></div>
+        <div class="hero-orb hero-orb-2"></div>
+        <div class="hero-orb hero-orb-3"></div>
+
+        <!-- Particles -->
+        <canvas class="hero-particles" id="heroParticles"></canvas>
+
+        <!-- Content -->
+        <div class="hero-content">
+            <div class="hero-tag">渡鸦_NULL BLOG</div>
+            <h1 class="hero-title">
+                <span class="highlight" id="heroTitleText">HELLO</span>
+            </h1>
+            <p class="hero-subtitle">只要你不失去你的崇高，整个世界都将向你敞开</p>
+
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-num" id="statPosts">0</div>
+                    <div class="hero-stat-label">Articles</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-num" id="statTags">0</div>
+                    <div class="hero-stat-label">Tags</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-num" id="statWords">0</div>
+                    <div class="hero-stat-label">Words</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll indicator -->
+        <div class="scroll-indicator" id="scrollIndicator">
+            <span>Scroll</span>
+            <div class="scroll-arrow"></div>
+        </div>
+    </section>
+
+    <!-- ===== CONTENT WRAPPER ===== -->
+    <div class="content-wrapper" id="contentWrapper">
+
+        <!-- Sticky Nav -->
+        <nav class="nav-bar" id="navBar">
+            <div class="nav-inner">
+                <a href="#" class="nav-brand" onclick="BlogApp.scrollToTop(); return false;">
+                    <span class="dot"></span>
+                    BLOG
+                </a>
+                <div class="nav-links">
+                    <a href="#" class="nav-link active" onclick="BlogApp.filterByTag(null); return false;">All</a>
+                    <a href="#" class="nav-link" onclick="BlogApp.filterByTag('技术'); return false;">Tech</a>
+                    <a href="#" class="nav-link" onclick="BlogApp.filterByTag('AI'); return false;">AI</a>
+                    <a href="#" class="nav-link" onclick="BlogApp.filterByTag('生活'); return false;">Life</a>
+                </div>
+                <div class="nav-search-wrapper">
+                    <button class="nav-search-btn" onclick="BlogApp.toggleSearch()" title="Search">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.35-4.35" />
+                        </svg>
+                    </button>
+                    <div class="search-dropdown" id="searchDropdown">
+                        <input type="text" id="searchInput" placeholder="Search articles..."
+                            oninput="BlogApp.searchPosts(this.value)">
+                        <button class="search-dropdown-close" onclick="BlogApp.toggleSearch()">&times;</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Section Header -->
+            <div class="section-header">
+                <div class="section-title">Articles</div>
+                <div class="section-count" id="postCount">0 posts</div>
+            </div>
+
+            <!-- Tags -->
+            <div class="tags-section" id="tags">
+                <!-- Dynamic -->
+            </div>
+
+            <!-- Posts -->
+            <div id="posts">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div id="pagination"></div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-left">&copy; 2024 BLOG. Built with passion.</div>
+            <div class="footer-right">
+                <a href="#" class="footer-link">GitHub</a>
+                <a href="#" class="footer-link">RSS</a>
+                <a href="#" class="footer-link">About</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/theme.js"></script>
+    <script src="js/markdown.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/chat.js"></script>
+
+    <script>
+        // ===== Hero Particles =====
+        class HeroParticles {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.particles = [];
+                this.mouse = { x: 0, y: 0 };
+                this.resize();
+                this.init();
+                this.animate();
+
+                window.addEventListener('resize', () => this.resize());
+                window.addEventListener('mousemove', (e) => {
+                    this.mouse.x = e.clientX;
+                    this.mouse.y = e.clientY;
+                });
+            }
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+
+            init() {
+                const count = Math.min(80, Math.floor(window.innerWidth / 15));
+                this.particles = [];
+                for (let i = 0; i < count; i++) {
+                    this.particles.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        vx: (Math.random() - 0.5) * 0.3,
+                        vy: (Math.random() - 0.5) * 0.3,
+                        size: Math.random() * 1.5 + 0.5,
+                        opacity: Math.random() * 0.4 + 0.1
+                    });
+                }
+            }
+
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Get accent color from theme
+                const style = getComputedStyle(document.documentElement);
+                const accent = style.getPropertyValue('--accent').trim() || '#ffffff';
+
+                this.particles.forEach((p, i) => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    // Mouse interaction
+                    const dx = this.mouse.x - p.x;
+                    const dy = this.mouse.y - p.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        p.x -= dx * 0.01;
+                        p.y -= dy * 0.01;
+                    }
+
+                    // Wrap around
+                    if (p.x < 0) p.x = this.canvas.width;
+                    if (p.x > this.canvas.width) p.x = 0;
+                    if (p.y < 0) p.y = this.canvas.height;
+                    if (p.y > this.canvas.height) p.y = 0;
+
+                    // Draw particle
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    this.ctx.fillStyle = this.hexToRgba(accent, p.opacity);
+                    this.ctx.fill();
+
+                    // Connect nearby particles
+                    for (let j = i + 1; j < this.particles.length; j++) {
+                        const p2 = this.particles[j];
+                        const d = Math.sqrt((p.x - p2.x) ** 2 + (p.y - p2.y) ** 2);
+                        if (d < 120) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(p.x, p.y);
+                            this.ctx.lineTo(p2.x, p2.y);
+                            this.ctx.strokeStyle = this.hexToRgba(accent, 0.06 * (1 - d / 120));
+                            this.ctx.stroke();
+                        }
+                    }
+                });
+
+                requestAnimationFrame(() => this.animate());
+            }
+
+            hexToRgba(hex, alpha) {
+                hex = hex.replace('#', '');
+                if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+        }
+
+        // ===== Scroll Observer =====
+        function initScrollObserver() {
+            const wrapper = document.getElementById('contentWrapper');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        wrapper.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.05 });
+
+            observer.observe(wrapper);
+        }
+
+        // ===== Card Reveal Observer =====
+        function initCardObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+            // Observe existing cards
+            document.querySelectorAll('.card').forEach(card => observer.observe(card));
+
+            // Store observer for dynamic cards
+            window._cardObserver = observer;
+        }
+
+        // ===== Counter Animation =====
+        function animateCounter(el, target, suffix = '') {
+            const duration = 1500;
+            const start = performance.now();
+
+            function update(now) {
+                const elapsed = now - start;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = Math.round(eased * target);
+
+                el.textContent = current + suffix;
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        // ===== Type Writer Effect =====
+        function typeWriter(el, text, speed = 80) {
+            let i = 0;
+            el.textContent = '';
+
+            function type() {
+                if (i < text.length) {
+                    el.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                }
+            }
+
+            type();
+        }
+
+        // ===== Init =====
+        document.addEventListener('DOMContentLoaded', () => {
+            // Particles
+            const canvas = document.getElementById('heroParticles');
+            if (canvas) new HeroParticles(canvas);
+
+            // Scroll observer
+            initScrollObserver();
+
+            // Type writer for hero title
+            const titleEl = document.getElementById('heroTitleText');
+            if (titleEl) {
+                setTimeout(() => typeWriter(titleEl, 'Hello World!', 120), 800);
+            }
+
+            // Scroll indicator click
+            const scrollIndicator = document.getElementById('scrollIndicator');
+            if (scrollIndicator) {
+                scrollIndicator.addEventListener('click', () => {
+                    document.getElementById('contentWrapper').scrollIntoView({ behavior: 'smooth' });
+                });
+            }
+
+            // ESC to close search
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const dropdown = document.getElementById('searchDropdown');
+                    if (dropdown && dropdown.classList.contains('show')) {
+                        BlogApp.toggleSearch();
+                    }
+                }
+            });
+
+            // Click outside to close search
+            document.addEventListener('click', (e) => {
+                const wrapper = document.querySelector('.nav-search-wrapper');
+                const dropdown = document.getElementById('searchDropdown');
+                if (dropdown && dropdown.classList.contains('show') && !wrapper.contains(e.target)) {
+                    BlogApp.toggleSearch();
+                }
+            });
+
+            // Init blog app
+            BlogApp.init().then(() => {
+                // Animate stats
+                const totalPosts = BlogApp.posts.length;
+                const allTags = new Set();
+                let totalWords = 0;
+                BlogApp.posts.forEach(post => {
+                    post.tags.forEach(tag => allTags.add(tag));
+                    totalWords += post.content ? post.content.length : 0;
+                });
+
+                setTimeout(() => {
+                    animateCounter(document.getElementById('statPosts'), totalPosts);
+                    animateCounter(document.getElementById('statTags'), allTags.size);
+                    animateCounter(document.getElementById('statWords'), Math.round(totalWords / 1000), 'k');
+                }, 1000);
+
+                // Update post count
+                document.getElementById('postCount').textContent = `${totalPosts} posts`;
+
+                // Init card observer after posts render
+                setTimeout(() => initCardObserver(), 100);
+            });
+
+            // Init AI chat
+            AIChat.init();
+        });
+
+        // Override renderPosts to re-init card observer
+        const originalRenderPosts = BlogApp.renderPosts.bind(BlogApp);
+        BlogApp.renderPosts = function () {
+            originalRenderPosts();
+            setTimeout(() => {
+                document.querySelectorAll('.card:not(.visible)').forEach(card => {
+                    if (window._cardObserver) window._cardObserver.observe(card);
+                });
+                // Update count
+                const countEl = document.getElementById('postCount');
+                if (countEl) countEl.textContent = `${this.filteredPosts.length} posts`;
+            }, 50);
+        };
+    </script>
+</body>
+
+</html>
